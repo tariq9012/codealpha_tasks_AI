@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FAQ Chatbot | CodeAlpha</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-header">
+        🤖 Shopinza Support Bot
+        <span class="subtitle">CodeAlpha AI Internship — Task 2</span>
+    </div>
+
+    <div id="chatWindow" class="chat-window">
+        <div class="message bot">
+            Hi! 👋 Ask me anything about orders, payments, delivery, or returns.
+        </div>
+    </div>
+
+    <div class="chat-input-row">
+        <input type="text" id="userInput" placeholder="Type your question..." autocomplete="off">
+        <button id="sendBtn">Send</button>
+    </div>
+</div>
+
+<script>
+const chatWindow = document.getElementById('chatWindow');
+const userInput = document.getElementById('userInput');
+const sendBtn = document.getElementById('sendBtn');
+
+function addMessage(text, sender) {
+    const msg = document.createElement('div');
+    msg.className = `message ${sender}`;
+    msg.textContent = text;
+    chatWindow.appendChild(msg);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+}
+
+async function sendMessage() {
+    const text = userInput.value.trim();
+    if (!text) return;
+
+    addMessage(text, 'user');
+    userInput.value = '';
+
+    const typing = document.createElement('div');
+    typing.className = 'message bot typing';
+    typing.textContent = 'typing...';
+    chatWindow.appendChild(typing);
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+
+    try {
+        const res = await fetch('/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ message: text })
+        });
+        const data = await res.json();
+        typing.remove();
+        addMessage(data.answer, 'bot');
+    } catch (err) {
+        typing.remove();
+        addMessage('Something went wrong. Please try again.', 'bot');
+    }
+}
+
+sendBtn.addEventListener('click', sendMessage);
+userInput.addEventListener('keypress', (e) => {
+    if (e.key === 'Enter') sendMessage();
+});
+</script>
+
+</body>
+</html>

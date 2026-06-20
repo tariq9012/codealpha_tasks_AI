@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Language Translator | CodeAlpha</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="container">
+    <h1>🌐 Language Translation Tool</h1>
+    <p class="subtitle">CodeAlpha AI Internship — Task 1</p>
+
+    <div class="lang-row">
+        <select id="sourceLang">
+            {% for code, name in languages.items() %}
+                <option value="{{ code }}" {% if code == 'auto' %}selected{% endif %}>{{ name }}</option>
+            {% endfor %}
+        </select>
+
+        <button id="swapBtn" title="Swap languages">⇄</button>
+
+        <select id="targetLang">
+            {% for code, name in languages.items() %}
+                {% if code != 'auto' %}
+                    <option value="{{ code }}" {% if code == 'en' %}selected{% endif %}>{{ name }}</option>
+                {% endif %}
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="box-row">
+        <div class="box">
+            <textarea id="inputText" placeholder="Type or paste text here..."></textarea>
+            <button class="speak-btn" onclick="speak('inputText', document.getElementById('sourceLang').value)">🔊 Listen</button>
+        </div>
+
+        <div class="box">
+            <textarea id="outputText" placeholder="Translation will appear here..." readonly></textarea>
+            <div class="output-actions">
+                <button class="speak-btn" onclick="speak('outputText', document.getElementById('targetLang').value)">🔊 Listen</button>
+                <button class="copy-btn" onclick="copyOutput()">📋 Copy</button>
+            </div>
+        </div>
+    </div>
+
+    <button id="translateBtn">Translate</button>
+    <p id="errorMsg" class="error"></p>
+</div>
+
+<script>
+const translateBtn = document.getElementById('translateBtn');
+const swapBtn = document.getElementById('swapBtn');
+const inputText = document.getElementById('inputText');
+const outputText = document.getElementById('outputText');
+const sourceLang = document.getElementById('sourceLang');
+const targetLang = document.getElementById('targetLang');
+const errorMsg = document.getElementById('errorMsg');
+
+translateBtn.addEventListener('click', async () => {
+    const text = inputText.value.trim();
+    errorMsg.textContent = '';
+
+    if (!text) {
+        errorMsg.textContent = 'Please enter some text first.';
+        return;
+    }
+
+    translateBtn.textContent = 'Translating...';
+    translateBtn.disabled = true;
+
+    try {
+        const res = await fetch('/translate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                text: text,
+                source: sourceLang.value,
+                target: targetLang.value
+            })
+        });
+        const data = await res.json();
+
+        if (data.error) {
+            errorMsg.textContent = data.error;
+        } else {
+            outputText.value = data.translated_text;
+        }
+    } catch (err) {
+        errorMsg.textContent = 'Something went wrong. Please try again.';
+    } finally {
+        translateBtn.textContent = 'Translate';
+        translateBtn.disabled = false;
+    }
+});
+
+swapBtn.addEventListener('click', () => {
+    if (sourceLang.value === 'auto') return; // can't swap from auto-detect
+    const temp = sourceLang.value;
+    sourceLang.value = targetLang.value;
+    targetLang.value = temp;
+
+    const tempText = inputText.value;
+    inputText.value = outputText.value;
+    outputText.value = tempText;
+});
+
+function copyOutput() {
+    if (!outputText.value) return;
+    navigator.clipboard.writeText(outputText.value);
+    alert('Copied to clipboard!');
+}
+
+function speak(boxId, langCode) {
+    const text = document.getElementById(boxId).value;
+    if (!text) return;
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = langCode === 'auto' ? 'en' : langCode;
+    speechSynthesis.cancel();
+    speechSynthesis.speak(utterance);
+}
+</script>
+
+</body>
+</html>
